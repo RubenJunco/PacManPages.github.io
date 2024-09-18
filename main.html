@@ -1,0 +1,795 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+</head>
+
+<body>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Bruno+Ace+SC&family=Bungee+Tint&display=swap" rel="stylesheet">
+
+    
+    <div class="game-container">
+        <h1 class="div">¡¡CATCH THE BALLS!!</h1>
+        <canvas id="canvas" width="1900px" height="1000px"></canvas>
+
+        <!-- Botones de control -->
+        <button id="Pausa" class="control-btn">Pausar</button>
+        <button id="MusicaToggle" class="control-btn"> Música</button>
+
+        <div id="cronometro" class="cronometro">00:00</div>
+    </div>
+
+
+    <canvas id="canvas" width="1900px" height="1000px"></canvas>
+    
+
+    <button id="Pausa">Pausar</button>
+    <button id="MusicaToggle"> Música</button>
+
+
+    <audio id="Screamer" src="sonido/pausa.mp3"></audio>
+    <audio id="musicaFondo" src="sonido/fondo.mp3" loop autoplay></audio>
+    
+    
+    <script>
+
+        var audiowp = document.getElementById("musicaFondo");
+        var audiop = document.getElementById("Screamer");
+
+        audiowp.volume = 0.5; 
+        audiop.volume = 0.4;
+
+        const myCanvas = document.getElementById("canvas");
+        const ctx = myCanvas.getContext("2d");
+
+        const fondoImage = new Image();
+        fondoImage.src = 'images/FondoIsnt.png';
+
+        const playerImage = new Image();
+        playerImage.src = 'images/prota.png';
+
+        const tpImg = new Image();
+        tpImg.src = 'images/tp.png';
+        
+
+         // Cronómetro
+        let segundos = 0;
+        let minutos = 0;
+
+        function actualizarCronometro() {
+            segundos++;
+            if (segundos === 60) {
+                segundos = 0;
+                minutos++;
+            }
+            const formatoSegundos = segundos < 10 ? "0" + segundos : segundos;
+            const formatoMinutos = minutos < 10 ? "0" + minutos : minutos;
+            document.getElementById("cronometro").textContent = `${formatoMinutos}:${formatoSegundos}`;
+        }
+
+    
+        setInterval(actualizarCronometro, 1000);
+
+        const texts = [
+            "¡¡Haz ganado!! y con tu esfuerso hemos consegido la siguiente infomacion: Los aztecas se referían a sí mismos como “Mexica” y su lengua principal era el náhuatl. Su capital, Tenochtitlán, estaba construida sobre una serie de islas en el lago Texcoco y fue una de las ciudades más grandes del mundo en su época, con una población estimada de 200,000 habitantes",
+            "¡¡Haz ganado!! y con tu esfuerso hemos consegido la siguiente infomacion: Finlandia ha sido habitada desde la Edad de Piedra, pero su historia moderna comenzó a tomar forma en el siglo XII cuando fue conquistada por Suecia. Durante más de 600 años, Finlandia fue parte del Reino de Suecia, lo que dejó una profunda influencia en su cultura y lengua. En 1809, Finlandia fue cedida al Imperio Ruso y se convirtió en un Gran Ducado autónomo bajo el zar. Este período de autonomía permitió a los finlandeses desarrollar una identidad nacional más fuerte",
+            "¡¡Haz ganado!! y con tu esfuerso hemos consegido la siguiente infomacion: La Revolución Cultural en China, también conocida como la Gran Revolución Cultural Proletaria, fue un movimiento sociopolítico que tuvo lugar entre 1966 y 1976. Fue liderada por Mao Zedong, el fundador del Partido Comunista de China, con el objetivo de purgar el sistema político y cultural chino de elementos considerados burgueses, capitalistas y revisionistas",
+            "¡¡Haz ganado!! y con tu esfuerso hemos consegido la siguiente infomacion: Antes de la llegada de los europeos, Cuba estaba habitada por los Taínos y los Ciboneyes. Cristóbal Colón llegó a la isla en 1492, y pronto se convirtió en una colonia española. Durante los siguientes siglos, Cuba se convirtió en un importante productor de azúcar y tabaco, utilizando mano de obra esclava africana",
+            "¡¡Haz ganado!! y con tu esfuerso hemos consegido la siguiente infomacion: En 1941, Alemania lanza la Operación Barbarroja, una invasión masiva de la Unión Soviética. Las fuerzas alemanas logran capturar Moscú y derrotar al Ejército Rojo, llevando a la capitulación de la Unión Soviética"
+            ];
+
+        class Figura {
+            constructor(x, y, a, l, color, isImage = false) {
+                this.x = x;
+                this.y = y;
+                this.width = a;
+                this.height = l;
+                this.color = color;
+                this.isImage = isImage;
+            }
+
+            draw() {
+
+                if (this.isImage && playerImage.complete) {
+                    
+                    ctx.drawImage(fondoImage, 0, 0, 1900, 1000);
+                    ctx.drawImage(tpImg,10,450,30,100);
+                    ctx.drawImage(tpImg,425,960,150,30);
+                    ctx.drawImage(tpImg,940,450,30,100);
+                    ctx.drawImage(tpImg,425,20,150,30);
+                    ctx.drawImage(playerImage, this.x, this.y, this.width, this.height);
+                } else {
+                    ctx.fillStyle = this.color;
+                    ctx.fillRect(this.x, this.y, this.width, this.height);
+                }
+
+            }
+
+           
+
+            isCollidingWith(other) {
+                return !(this.x + this.width < other.x ||
+                    this.x > other.x + other.width ||
+                    this.y + this.height < other.y ||
+                    this.y > other.y + other.height);
+            }
+        }
+        //pacman(nombre provicional)
+        const itbox = new Figura(700, 350, 30, 30, "red", true);
+
+        const getRandomPosition = (min, max) => {
+        return Math.floor(Math.random() * (max - min + 1)) + min;
+        }
+
+
+        
+        function getRandomColor() {
+            const letters = '0123456789ABCDEF';
+            let color = '#';
+            for (let i = 0; i < 6; i++) {
+                color += letters[Math.floor(Math.random() * 16)];
+            }
+            return color;
+        }
+
+        let randomColor = getRandomColor();
+
+        
+
+        const fruit = new Figura(getRandomPosition(100, 1000), getRandomPosition(100, 1000), 30, 30, randomColor);
+        setInterval(getRandomColor, 100);
+
+
+        // enemigos
+        const enemies = [
+            new Figura(400, 470, 30, 30, 'rgb(106, 45, 45)'),
+            new Figura(400, 520, 30, 30, 'rgb(106, 87, 45)'),
+            new Figura(430, 470, 30, 30, 'rgb(45, 99, 106)'),
+            new Figura(430, 520, 30, 30, 'rgb(45, 106, 55)')
+        ];
+
+        const tp1 = new Figura(430, 0, 140, 10, "black");
+        const tp2 = new Figura(450, 1000, 100, 10, "black");
+        const tp3 = new Figura(0, 460, 10, 80, "black");
+        const tp4 = new Figura(970, 460, 10, 80, "black");
+
+        //puntos
+        const bola1 = new Figura(45, 50, 10, 10, "yellow");
+        const bola2 = new Figura(300, 50, 10, 10, "yellow");
+        const bola3 = new Figura(180, 150, 10, 10, "yellow");
+        const bola4 = new Figura(115, 350, 10, 10, "yellow");
+        const bola5 = new Figura(45, 250, 10, 10, "yellow");
+
+        const bola6 = new Figura(45, 650, 10, 10, "yellow");
+        const bola7 = new Figura(45, 850, 10, 10, "yellow");
+        const bola8 = new Figura(116, 610, 10, 10, "yellow");
+        const bola9 = new Figura(300, 930, 10, 10, "yellow");
+        const bola10 = new Figura(270, 830, 10, 10, "yellow");
+
+        const bola11 = new Figura(645, 60, 10, 10, "yellow");
+        const bola12 = new Figura(800, 260, 10, 10, "yellow");
+        const bola13 = new Figura(945, 360, 10, 10, "yellow");
+        const bola14 = new Figura(945, 100, 10, 10, "yellow");
+        const bola15 = new Figura(875, 150, 10, 10, "yellow");
+
+        const bola16 = new Figura(945, 630, 10, 10, "yellow");
+        const bola17 = new Figura(945, 920, 10, 10, "yellow");
+        const bola18 = new Figura(945, 750, 10, 10, "yellow");
+        const bola19 = new Figura(745, 930, 10, 10, "yellow");
+        const bola20 = new Figura(45, 50, 10, 10, "yellow");
+
+        const bola21 = new Figura(450, 500, 10, 10, "yellow");
+        const bola22 = new Figura(550, 500, 10, 10, "yellow");
+        const bola23 = new Figura(400, 710, 10, 10, "yellow");
+        const bola24 = new Figura(600, 710, 10, 10, "yellow");
+        const bola25 = new Figura(495, 600, 10, 10, "yellow");
+
+        const bola26 = new Figura(550, 260, 10, 10, "yellow");
+        const bola27 = new Figura(440, 260, 10, 10, "yellow");
+        const bola28 = new Figura(340, 160, 10, 10, "yellow");
+        const bola29 = new Figura(640, 160, 10, 10, "yellow");
+        const bola30 = new Figura(495, 80, 10, 10, "yellow");
+///////////////////////////////////////////////////////////////
+
+        // Mapa
+        const obstaculo = [
+            //pared izquierda
+            new Figura(0, 0, 30, 450, 'rgb(97,97,97)'),
+            new Figura(0, 550, 30, 450, 'rgb(97,97,97)'),
+
+            //linea centro izq.
+            new Figura(30, 420, 60, 30, 'rgb(97,97,97)'),
+            new Figura(30, 550, 60, 30, 'rgb(97,97,97)'),
+
+            //pared derecha
+            new Figura(970, 0, 30, 450, 'rgb(97,97,97)'),
+            new Figura(970, 550, 30, 450, 'rgb(97,97,97)'),
+
+            //linea centro der.
+            new Figura(910, 420, 60, 30, 'rgb(97,97,97)'),
+            new Figura(910, 550, 60, 30, 'rgb(97,97,97)'),
+
+            //techo
+            new Figura(0, 0, 400, 30, 'rgb(97,97,97)'),
+            new Figura(570, 0, 400, 30, 'rgb(97,97,97)'),
+            
+            //linea techo centro.
+            new Figura(400, 0, 30, 80, 'rgb(97,97,97)'),
+            new Figura(570, 0, 30, 80, 'rgb(97,97,97)'),
+
+            //suelo
+            new Figura(0, 970, 430, 30, 'rgb(97,97,97)'),
+            new Figura(570, 970, 400, 30, 'rgb(97,97,97)'),
+
+            //linea suelo centro.
+            new Figura(400, 900, 30, 80, 'rgb(97,97,97)'),
+            new Figura(570, 900, 30, 80, 'rgb(97,97,97)'),
+
+            //caja centro
+            new Figura(340, 450, 30, 60, 'rgb(97,97,97)'),
+            new Figura(620, 450, 30, 60, 'rgb(97,97,97)'),
+            new Figura(340, 550, 310, 30, 'rgb(97,97,97)'),
+            new Figura(300, 430, 155, 30, 'rgb(97,97,97)'),
+            new Figura(540, 430, 155, 30, 'rgb(97,97,97)'),
+
+            //linea derecha ext.
+            new Figura(830, 100, 30, 350, 'rgb(97,97,97)'),
+            new Figura(640, 100, 190, 30, 'rgb(97,97,97)'),
+            new Figura(830, 550, 30, 350, 'rgb(97,97,97)'),
+            new Figura(640, 870, 190, 30, 'rgb(97,97,97)'),
+
+            new Figura(900, 70, 30, 300, 'rgb(97,97,97)'),
+            new Figura(900, 630, 30, 300, 'rgb(97,97,97)'),
+            
+            //linea izquierda ext.
+            new Figura(140, 100, 30, 350, 'rgb(97,97,97)'),
+            new Figura(160, 100, 200, 30, 'rgb(97,97,97)'),
+            new Figura(140, 550, 30, 350, 'rgb(97,97,97)'),
+            new Figura(160, 870, 200, 30, 'rgb(97,97,97)'),
+
+            new Figura(70, 70, 30, 300, 'rgb(97,97,97)'),
+            new Figura(70, 630, 30, 300, 'rgb(97,97,97)'),
+
+            //linea centro abajo
+            new Figura(290, 650, 410, 30, 'rgb(97,97,97)'),
+            new Figura(485, 670, 30, 80, 'rgb(97,97,97)'),
+            new Figura(290, 750, 410, 30, 'rgb(97,97,97)'),
+
+            new Figura(400, 820, 200, 30, 'rgb(97,97,97)'),
+            //rayita centro
+            new Figura(390, 370, 200, 20, 'rgb(97,97,97)'),
+            
+            //linea centro arriba
+            new Figura(290, 300, 410, 30, 'rgb(97,97,97)'),
+            new Figura(485, 220, 30, 80, 'rgb(97,97,97)'),
+            new Figura(290, 200, 410, 30, 'rgb(97,97,97)'),
+
+            new Figura(400, 130, 200, 30, 'rgb(97,97,97)'),
+
+            //lineas derechas interiores
+            new Figura(210, 180, 30, 280, 'rgb(97,97,97)'),
+            new Figura(210, 540, 30, 280, 'rgb(97,97,97)'),
+
+            new Figura(750, 180, 30, 280, 'rgb(97,97,97)'),
+            new Figura(750, 540, 30, 280, 'rgb(97,97,97)')
+
+            
+        ];
+
+        let direction = "";
+        let speed = 5;
+        let isPaused = false;
+        var enemySpeed = 4;
+        let score = 0; 
+
+        const enemyDirections = ["right", "left", "up", "down"];  
+
+        document.addEventListener("keydown", (event) => {
+            switch (event.key) {
+                case "w":
+                    direction = "up";
+                    break;
+                case "s":
+                    direction = "down";
+                    break;
+                case "a":
+                    direction = "left";
+                    break;
+                case "d":
+                    direction = "right";
+                    break;
+            }
+        });
+
+        function moveEnemy(enemy, index) {
+            const previousX = enemy.x;
+            const previousY = enemy.y;
+
+            switch (enemyDirections[index]) {
+                case "up":
+                    enemy.y -= enemySpeed;
+                    break;
+                case "down":
+                    enemy.y += enemySpeed;
+                    break;
+                case "left":
+                    enemy.x -= enemySpeed;
+                    break;
+                case "right":
+                    enemy.x += enemySpeed;
+                    break;
+            }
+
+            let collided = false;
+            obstaculo.forEach(obstacle => {
+                if (enemy.isCollidingWith(obstacle)) {
+                    collided = true;
+                }
+            });
+
+            if (collided) {
+                enemy.x = previousX;
+                enemy.y = previousY;
+                enemyDirection(index);
+            }
+
+            // Limitar movimiento dentro del canvas
+            if (enemy.x < 0 || enemy.x + enemy.width > myCanvas.width || enemy.y < 0 || enemy.y + enemy.height > myCanvas.height) {
+                enemy.x = previousX;
+                enemy.y = previousY;
+                enemyDirection(index);
+            }
+        }
+
+        function enemyDirection(index) {
+            const directions = ["up", "down", "left", "right"];
+            enemyDirections[index] = directions[Math.floor(Math.random() * directions.length)];
+        }
+
+       
+        let hasWon = false; 
+
+
+        //frutas
+        function generateRandomPosition() {
+            fruit.x = Math.floor(Math.random() * (1500 - 1000 + 1)) + 1000;
+            fruit.y = Math.floor(Math.random() * (1500 - 1000 + 1)) + 1000;
+            
+        }
+
+        setInterval(generateRandomPosition, 10000);  
+
+        //
+       
+        
+
+        function update() {
+            if (isPaused) return;
+
+            const previousX = itbox.x;
+            const previousY = itbox.y;
+
+            switch (direction) {
+                case "up":
+                    itbox.y -= speed;
+                    break;
+                case "down":
+                    itbox.y += speed;
+                    break;
+                case "left":
+                    itbox.x -= speed;
+                    break;
+                case "right":
+                    itbox.x += speed;
+                    break;
+            }
+
+            
+
+            //puntaje
+//////////////////////////////////////////
+
+            if (itbox.isCollidingWith(fruit)) {
+               enemySpeed = 2;
+               fruit.x += 3000;
+               fruit.y += 3000; 
+               console.log("tocado");
+            
+
+            }
+            if (itbox.isCollidingWith(bola1)) {
+                bola1.x = 3000;  
+                bola1.y = 3000;
+                score++;
+                console.log(score);
+            }
+            if (itbox.isCollidingWith(bola2)) {
+                bola2.x = 3000;  
+                bola2.y = 3000;
+                score++;
+                console.log(score);
+            }
+            if (itbox.isCollidingWith(bola3)) {
+                bola3.x = 3000;  
+                bola3.y = 3000;
+                score++;
+                console.log(score);
+            }
+            if (itbox.isCollidingWith(bola4)) {
+                bola4.x = 3000;  
+                bola4.y = 3000;
+                score++;
+                console.log(score);
+            }
+            if (itbox.isCollidingWith(bola5)) {
+                bola5.x = 3000;  
+                bola5.y = 3000;
+                score++;
+                console.log(score);
+            }
+            if (itbox.isCollidingWith(bola6)) {
+                bola6.x = 3000;  
+                bola6.y = 3000;
+                score++;
+                console.log(score);
+            }
+            if (itbox.isCollidingWith(bola7)) {
+                bola7.x = 3000;  
+                bola7.y = 3000;
+                score++;
+                console.log(score);
+            }
+            if (itbox.isCollidingWith(bola8)) {
+                bola8.x = 3000;  
+                bola8.y = 3000;
+                score++;
+                console.log(score);
+            }
+            if (itbox.isCollidingWith(bola9)) {
+                bola9.x = 3000;  
+                bola9.y = 3000;
+                score++;
+                console.log(score);
+            }
+            if (itbox.isCollidingWith(bola10)) {
+                bola10.x = 3000;  
+                bola10.y = 3000;
+                score++;
+                console.log(score);
+            }
+            if (itbox.isCollidingWith(bola11)) {
+                bola11.x = 3000;  
+                bola11.y = 3000;
+                score++;
+                console.log(score);
+            }
+            if (itbox.isCollidingWith(bola12)) {
+                bola12.x = 3000;  
+                bola12.y = 3000;
+                score++;
+                console.log(score);
+            }
+            if (itbox.isCollidingWith(bola13)) {
+                bola13.x = 3000;  
+                bola13.y = 3000;
+                score++;
+                console.log(score);
+            }
+            if (itbox.isCollidingWith(bola14)) {
+                bola14.x = 3000;  
+                bola14.y = 3000;
+                score++;
+                console.log(score);
+            }
+            if (itbox.isCollidingWith(bola15)) {
+                bola15.x = 3000;  
+                bola15.y = 3000;
+                score++;
+                console.log(score);
+            }
+            if (itbox.isCollidingWith(bola16)) {
+                bola16.x = 3000;  
+                bola16.y = 3000;
+                score++;
+                console.log(score);
+            }
+            if (itbox.isCollidingWith(bola17)) {
+                bola17.x = 3000;  
+                bola17.y = 3000;
+                score++;
+                console.log(score);
+            }
+            if (itbox.isCollidingWith(bola18)) {
+                bola18.x = 3000;  
+                bola18.y = 3000;
+                score++;
+                console.log(score);
+            }
+            if (itbox.isCollidingWith(bola19)) {
+                bola19.x = 3000;  
+                bola19.y = 3000;
+                score++;
+                console.log(score);
+            }
+            if (itbox.isCollidingWith(bola20)) {
+                bola20.x = 3000;  
+                bola20.y = 3000;
+                score++;
+                console.log(score);
+            }
+            if (itbox.isCollidingWith(bola21)) {
+                bola21.x = 3000;  
+                bola21.y = 3000;
+                score++;
+                console.log(score);
+            }
+            if (itbox.isCollidingWith(bola22)) {
+                bola22.x = 3000;  
+                bola22.y = 3000;
+                score++;
+                console.log(score);
+            }
+            if (itbox.isCollidingWith(bola23)) {
+                bola23.x = 3000;  
+                bola23.y = 3000;
+                score++;
+                console.log(score);
+            }
+            if (itbox.isCollidingWith(bola24)) {
+                bola24.x = 3000;  
+                bola24.y = 3000;
+                score++;
+                console.log(score);
+            }
+            if (itbox.isCollidingWith(bola25)) {
+                bola25.x = 3000;  
+                bola25.y = 3000;
+                score++;
+                console.log(score);
+            }
+            if (itbox.isCollidingWith(bola26)) {
+                bola26.x = 3000;  
+                bola26.y = 3000;
+                score++;
+                console.log(score);
+            }
+            if (itbox.isCollidingWith(bola27)) {
+                bola27.x = 3000;  
+                bola27.y = 3000;
+                score++;
+                console.log(score);
+            }
+            if (itbox.isCollidingWith(bola28)) {
+                bola28.x = 3000;  
+                bola28.y = 3000;
+                score++;
+                console.log(score);
+            }
+            if (itbox.isCollidingWith(bola29)) {
+                bola29.x = 3000;  
+                bola29.y = 3000;
+                score++;
+                console.log(score);
+            }
+            if (itbox.isCollidingWith(bola30)) {
+                bola30.x = 3000;  
+                bola30.y = 3000;
+                score++;
+                console.log(score);
+            }
+
+            //victoria
+            function getRandomText() {
+             const randomIndex = Math.floor(Math.random() * texts.length);
+            return texts[randomIndex];
+            }
+
+            if (score >= 29 && !hasWon) {
+             hasWon = true;  
+             const randomText = getRandomText(); 
+                alert(randomText);
+            setTimeout(() => {
+            location.reload();  
+            }, 10);  
+
+    }
+
+
+
+
+            
+            
+///////////////////////////////////////////////////
+            obstaculo.forEach(obstacle => {
+                if (itbox.isCollidingWith(obstacle)) {
+                    itbox.x = previousX;
+                    itbox.y = previousY;
+                }
+            });
+
+            enemies.forEach((enemy) => {
+                if (itbox.isCollidingWith(enemy)) {
+                
+                    alert("¡Haz perdido! :(");
+                    location.reload();
+                    enemy.x = 2000;
+                    enemy.y = 2000;
+
+
+                }
+
+         
+
+            });
+
+           
+                
+        
+
+            if (itbox.isCollidingWith(tp1)) {
+                itbox.x = 440;
+                itbox.y = 930;
+            } else if (itbox.isCollidingWith(tp2)) {
+                itbox.x = 450;
+                itbox.y = 50;
+            } else if (itbox.isCollidingWith(tp3)) {
+                itbox.x = 920;
+                itbox.y = 460;
+            } else if (itbox.isCollidingWith(tp4)) {
+                itbox.x = 60;
+                itbox.y = 460;
+            }
+
+            enemies.forEach((enemy, index) => moveEnemy(enemy, index));
+        }
+
+        function paint() {
+            ctx.clearRect(0, 0, myCanvas.width, myCanvas.height);
+
+            itbox.draw();
+            enemies.forEach(enemy => enemy.draw());
+            tp1.draw();
+            tp2.draw();
+            tp3.draw();
+            tp4.draw();
+
+            bola1.draw();
+            bola2.draw();
+            bola3.draw();
+            bola4.draw();
+            bola5.draw();
+            bola6.draw();
+            bola7.draw();
+            bola8.draw();
+            bola9.draw();
+            bola10.draw();
+            bola11.draw();
+            bola12.draw();
+            bola13.draw();
+            bola14.draw();
+            bola15.draw();
+            bola16.draw();
+            bola17.draw();
+            bola18.draw();
+            bola19.draw();
+            bola20.draw();
+            bola21.draw();
+            bola22.draw();
+            bola23.draw();
+            bola24.draw();
+            bola25.draw();
+            bola26.draw();
+            bola27.draw();
+            bola28.draw();
+            bola29.draw();
+            bola30.draw();
+
+            fruit.draw();
+
+            obstaculo.forEach(obstacle => obstacle.draw());
+
+            update();
+
+            requestAnimationFrame(paint);
+        }
+
+        const pauseBtn = document.getElementById("Pausa");
+        const Psound = document.getElementById("Screamer");
+
+        pauseBtn.addEventListener("click", () => {
+            isPaused = !isPaused;
+            pauseBtn.textContent = isPaused ? "Reanudar" : "Pausar";
+            Psound.play();
+        });
+
+        const music = document.getElementById("musicaFondo");
+        const musicToggleBtn = document.getElementById("MusicaToggle");
+
+       
+
+        musicToggleBtn.addEventListener("click", () => {
+            if (music.paused) {
+                music.play();
+                musicToggleBtn.textContent = "Pausar Música";
+            } else {
+                music.pause();
+                musicToggleBtn.textContent = "Reproducir Música";
+            }
+        });
+
+
+        playerImage.onload = function () {
+            paint();
+        }
+       
+        
+
+
+    </script>
+
+<style type="text/css">
+    body {
+        background-color: rgb(0, 0, 0);
+        margin: 0;
+        overflow: hidden;
+        font-family: "Bungee Tint", sans-serif;
+    }
+
+    .game-container {
+        position: flex;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        width: 100vw;
+        height: 100vh;
+    }
+
+    .div {
+        position: fixed;
+        top: 50px;
+        left: 1260px;
+        font-size: 25px;
+    }
+
+    .control-btn {
+        position: absolute;
+        top: 20px;
+        padding: 20px 80px;
+        font-size: 20px;
+        border-radius: 5px;
+        font-family: "Bungee Tint", sans-serif;
+    }
+
+    #Pausa {
+        top: 160px;
+        left: 1500px;
+    }
+
+    #MusicaToggle {
+        top: 160px;
+        left: 1070px;
+    }
+    .cronometro {
+            position: absolute;
+            top: 160px;
+            right: 420px;
+            color: white;
+            font-size: 40px;
+            font-family: 'Bebas Neue', sans-serif;
+            background-color: rgba(0, 0, 0, 0.5);
+            padding: 10px;
+            border-radius: 5px;
+        }
+
+    
+    
+        
+    </style>
+</body>
+
+</html>
